@@ -43,11 +43,10 @@ else # GNU+Linux
 	CCFLAGS += \
 		$(LIBDIR)/libpanda.a \
 		$(LIBDIR)/libpandaexpress.a \
+		$(LIBDIR)/libp3framework.a \
 		$(LIBDIR)/libp3dtool.a \
 		$(LIBDIR)/libp3dtoolconfig.a \
 		$(LIBDIR)/libp3direct.a \
-		$(LIBDIR)/libpandagl.a \
-		$(LIBDIR)/libpandaegg.a \
 		-I$(INCDIR)
 endif
 
