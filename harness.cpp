@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "pandaFramework.h"
+#include "textNode.h"
 
 #ifndef __AFL_LOOP
 #define __AFL_LOOP(x) (true) // Fallback for non-AFL builds
@@ -47,10 +48,14 @@ int main(int argc, char **argv) {
     btn->set_frame(-0.5, 0.5, -0.1, 0.1);
 
     NodePath np = aspect2d.attach_new_node(btn);
-
+    // create a text node similarly to how direct onscreentext would
+    PT(TextNode) textNode = new TextNode("text");
+    textNode->set_text(buf.data());
     // Force some internal processing
     btn->set_active(true);
     btn->set_active(false);
+    textNode->set_card_decal(false);
+    textNode->set_card_decal(true);
 
     np.remove_node();
   }
