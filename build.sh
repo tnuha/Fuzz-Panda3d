@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 echo "make sure to have prerequisites installed, as described in this repo's README and in Panda3D."
 sleep 0.5s
@@ -6,6 +6,11 @@ sleep 0.5s
 # ---- clone if needed ----
 if [ ! -d "panda3d" ]; then
   git clone https://github.com/panda3d/panda3d.git panda3d
+fi
+
+# ---- if thirdparty deps are present move them into the panda3d repo ----
+if [ -d "thirdparty" ]; then
+    mv thirdparty panda3d/thirdparty
 fi
 
 cd panda3d
@@ -21,6 +26,7 @@ if [ -n "${PY_INC+x}" ]; then
 python3 makepanda/makepanda.py --everything --static --threads $(nproc) \
     --no-pandatool --use-direct --no-egl --no-gles --no-gles2 --no-opencv --no-ffmpeg --no-freetype --no-harfbuzz \
     --python-incdir "$PY_INC" --python-libdir "$PY_LIB"
+    
 else
   python3 makepanda/makepanda.py --everything --static --threads $(nproc) \
       --no-pandatool --use-direct --no-egl --no-gles --no-gles2 --no-opencv --no-ffmpeg --no-freetype --no-harfbuzz
@@ -39,5 +45,3 @@ find panda3d/thirdparty -name "*.a" -exec cp {} panda3d-built/lib/ \;
 # so in these early stages I'm just shuffing this around.
 mv panda3d panda3d-fullrepo
 mv panda3d-built panda3d
-
-
