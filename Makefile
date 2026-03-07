@@ -13,7 +13,7 @@ ifeq ($(UNAME_S),Darwin)
 	CCFLAGS += \
 		-I$(INCDIR) \
 		-L$(LIBDIR) \
-		-lp3framework -lpanda -lpandaexpress -lp3dtool -lp3dtoolconfig -lp3direct -lpandagl -lpandaegg \
+		-lp3framework -lpanda -lpandaexpress -lp3dtool -lp3dtoolconfig -lp3direct  \
 		-lssl -lcrypto -lpng -ljpeg -lz -ltiff -lIex -lIlmThread -lsquish -lopusfile -lopus -lvorbisfile -lvorbis -logg -lobjc -lIlmImf -lHalf \
 		-framework CoreVideo \
 		-framework Carbon \

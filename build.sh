@@ -23,8 +23,7 @@ export CXXFLAGS="-g -O1 -fno-omit-frame-pointer"
 
 # ---- run minimal build ----
 if [ -n "${PY_INC+x}" ]; then
-python3 makepanda/makepanda.py --everything --static --threads $(nproc) \
-    --no-pandatool --use-direct --no-egl --no-gles --no-gles2 --no-opencv --no-ffmpeg --no-freetype --no-harfbuzz \
+python3 makepanda/makepanda.py --nothing --use-direct --static --threads $(nproc) \
     --python-incdir "$PY_INC" --python-libdir "$PY_LIB"
     
 else
