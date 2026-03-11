@@ -42,6 +42,7 @@ extern "C" int LLVMFuzzerTestOneInput(const char *data, size_t len) {
 
   np.remove_node();
 
+  framework.set_exit_flag();
   framework.main_loop();
   framework.close_framework();
   return 0;

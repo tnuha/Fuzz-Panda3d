@@ -23,7 +23,9 @@ ifeq ($(UNAME_S),Darwin)
 else # GNU+Linux
 	CCFLAGS += \
 		-I$(INCDIR) \
+		-lEGL \
 		$(LIBDIR)/libp3framework.a \
+		$(LIBDIR)/libp3tinydisplay.a \
 		$(LIBDIR)/libpanda.a \
 		$(LIBDIR)/libpandaexpress.a \
 		$(LIBDIR)/libp3dtool.a \

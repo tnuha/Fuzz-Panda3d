@@ -1,6 +1,7 @@
 panda3d
 panda3d-fullrepo
 harness
+triager
 out
 *.dSYM
 .DS_Store
