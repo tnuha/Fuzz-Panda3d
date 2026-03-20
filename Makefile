@@ -33,6 +33,10 @@ else # GNU+Linux
 		$(LIBDIR)/libp3direct.a
 endif
 
+# Need to unify build process for everything. I feel like this is the cleanest way to do it, even if it means some duplication.
+run-egg:
+	cd egg && make run
+
 textnode-harness: textnode-harness.cpp
 	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
 		textnode-harness.cpp -o harness $(CCFLAGS)
@@ -60,3 +64,4 @@ run: harness
 
 clean:
 	rm -f harness triager
+	cd egg && make clean
