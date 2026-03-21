@@ -19,7 +19,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
         return 0; // Invalid input.
     }
 
+    // Perform some operations on the data to test various code paths.
     egg.triangulate_polygons(EggData::T_polygon | EggData::T_convex);
+    egg.remove_invalid_primitives(true);
+    egg.remove_unused_vertices(true);
+    egg.recompute_vertex_normals(0.5);
+    egg.recompute_polygon_normals();
 
     return 0;
 }
