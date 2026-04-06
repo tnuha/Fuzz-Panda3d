@@ -7,4 +7,4 @@ out
 .DS_Store
 .cache
 .vscode
-.pyc
+__pycache__

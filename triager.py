@@ -18,6 +18,25 @@ def extract_summary(stderr: str) -> str | None:
     return None
 
 
+def find_crash_inputs(crash_root: str) -> list[tuple[str, str]]:
+    crash_inputs: list[tuple[str, str]] = []
+
+    for current_root, dirnames, filenames in os.walk(crash_root):
+        if os.path.basename(current_root) != "crashes":
+            continue
+
+        dirnames[:] = []
+        for fname in sorted(filenames):
+            if not fname.startswith("id:"):  # AFL crash naming pattern
+                continue
+
+            fpath = os.path.join(current_root, fname)
+            display_path = os.path.relpath(fpath, crash_root)
+            crash_inputs.append((display_path, fpath))
+
+    return crash_inputs
+
+
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description="Run a target against AFL crashes and summarize ASAN findings.")
     _ = parser.add_argument(
@@ -50,12 +69,9 @@ def main() -> None:
     seen_summaries: set[str] = set()
     unique_crashes: list[tuple[str, str]] = []
     total_crashes_triaged = 0
+    crash_inputs = find_crash_inputs(args.crash_dir)
 
-    for fname in os.listdir(args.crash_dir):
-        if not fname.startswith("id:"):  # AFL crash naming pattern
-            continue
-
-        fpath = os.path.join(args.crash_dir, fname)
+    for display_path, fpath in crash_inputs:
         print(f"[+] Running {fpath}")
         total_crashes_triaged += 1
 
@@ -65,6 +81,8 @@ def main() -> None:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=5,
                 check=False,
             )
@@ -80,7 +98,7 @@ def main() -> None:
                 continue
 
             seen_summaries.add(summary)
-            unique_crashes.append((fname, summary))
+            unique_crashes.append((display_path, summary))
             print(f"{summary}")
         else:
             print("No ASAN summary found.")
