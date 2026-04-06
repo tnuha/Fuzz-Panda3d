@@ -145,6 +145,7 @@ def main() -> None:
 
     print("\nDone. Results saved to:", args.output_file)
     print("Summary saved to:", summary_file)
+    print("\a", end="", flush=True)
 
 
 if __name__ == "__main__":
