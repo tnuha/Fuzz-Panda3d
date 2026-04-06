@@ -18,14 +18,21 @@ def extract_summary(stderr: str) -> str | None:
     return None
 
 
-def find_crash_inputs(crash_root: str) -> list[tuple[str, str]]:
+def find_crash_dirs(crash_root: str) -> list[str]:
+    crash_dirs: list[str] = []
+
+    for current_root, dirnames, _filenames in os.walk(crash_root):
+        if os.path.basename(current_root) == "crashes":
+            crash_dirs.append(current_root)
+            dirnames[:] = []
+
+    return sorted(crash_dirs)
+
+
+def find_crash_inputs(crash_root: str, crash_dirs: list[str]) -> list[tuple[str, str]]:
     crash_inputs: list[tuple[str, str]] = []
-
-    for current_root, dirnames, filenames in os.walk(crash_root):
-        if os.path.basename(current_root) != "crashes":
-            continue
-
-        dirnames[:] = []
+    for current_root in crash_dirs:
+        filenames = os.listdir(current_root)
         for fname in sorted(filenames):
             if not fname.startswith("id:"):  # AFL crash naming pattern
                 continue
@@ -66,10 +73,12 @@ def parse_args() -> Args:
 def main() -> None:
     start_time = time.monotonic()
     args = parse_args()
-    seen_summaries: set[str] = set()
-    unique_crashes: list[tuple[str, str]] = []
+    best_crashes: dict[str, tuple[int, str]] = {}
     total_crashes_triaged = 0
-    crash_inputs = find_crash_inputs(args.crash_dir)
+    crash_dirs = find_crash_dirs(args.crash_dir)
+    crash_inputs = find_crash_inputs(args.crash_dir, crash_dirs)
+
+    print(f"Found {len(crash_dirs)} crash directories.")
 
     for display_path, fpath in crash_inputs:
         print(f"[+] Running {fpath}")
@@ -93,13 +102,17 @@ def main() -> None:
         summary = extract_summary(result.stderr)
 
         if summary:
-            if summary in seen_summaries:
-                print(f"Duplicate crash, skipping: {summary}")
-                continue
+            file_size = os.path.getsize(fpath)
+            existing_crash = best_crashes.get(summary)
 
-            seen_summaries.add(summary)
-            unique_crashes.append((display_path, summary))
-            print(f"{summary}")
+            if existing_crash is None:
+                best_crashes[summary] = (file_size, display_path)
+                print(f"{summary}")
+            elif file_size < existing_crash[0]:
+                best_crashes[summary] = (file_size, display_path)
+                print(f"Smaller reproducer found ({file_size} bytes): {summary}")
+            else:
+                print(f"Duplicate crash, keeping smaller reproducer: {summary}")
         else:
             print("No ASAN summary found.")
 
@@ -108,14 +121,14 @@ def main() -> None:
         os.makedirs(output_dir, exist_ok=True)
 
     with open(args.output_file, "w", encoding="utf-8") as f:
-        for crash_name, summary in unique_crashes:
+        for summary, (_file_size, crash_name) in sorted(best_crashes.items(), key=lambda item: item[1][0]):
             _ = f.write(f"{crash_name}: {summary}\n")
 
     summary_file = os.path.join(output_dir or ".", "summary")
     elapsed_seconds = time.monotonic() - start_time
     with open(summary_file, "w", encoding="utf-8") as f:
         _ = f.write(f"Ran for (seconds): {elapsed_seconds:.2f}\n")
-        _ = f.write(f"Unique Crashes: {len(unique_crashes)}\n")
+        _ = f.write(f"Unique Crashes: {len(best_crashes)}\n")
         _ = f.write(f"Total Crashes: {total_crashes_triaged}\n")
 
     print("\nDone. Results saved to:", args.output_file)
