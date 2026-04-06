@@ -44,6 +44,10 @@ def find_crash_inputs(crash_root: str, crash_dirs: list[str]) -> list[tuple[str,
     return crash_inputs
 
 
+def count_crash_files(crash_dir: str) -> int:
+    return sum(1 for fname in os.listdir(crash_dir) if fname.startswith("id:"))
+
+
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description="Run a target against AFL crashes and summarize ASAN findings.")
     _ = parser.add_argument(
@@ -80,7 +84,14 @@ def main() -> None:
 
     print(f"Found {len(crash_dirs)} crash directories.")
 
+    current_crash_dir = ""
     for display_path, fpath in crash_inputs:
+        crash_dir = os.path.dirname(fpath)
+        if crash_dir != current_crash_dir:
+            current_crash_dir = crash_dir
+            relative_crash_dir = os.path.relpath(crash_dir, args.crash_dir)
+            print(f"\n[>] Processing {relative_crash_dir} ({count_crash_files(crash_dir)} crash files)")
+
         print(f"[+] Running {fpath}")
         total_crashes_triaged += 1
 
@@ -128,6 +139,7 @@ def main() -> None:
     elapsed_seconds = time.monotonic() - start_time
     with open(summary_file, "w", encoding="utf-8") as f:
         _ = f.write(f"Ran for (seconds): {elapsed_seconds:.2f}\n")
+        _ = f.write(f"Crash Directories: {len(crash_dirs)}\n")
         _ = f.write(f"Unique Crashes: {len(best_crashes)}\n")
         _ = f.write(f"Total Crashes: {total_crashes_triaged}\n")
 
