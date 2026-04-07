@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import os
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ class Args(argparse.Namespace):
     target: str = ""
     crash_dir: str = ""
     output_dir: str = ""
+    jobs: int = 0
 
 
 def extract_summary(stderr: str) -> str | None:
@@ -47,6 +49,28 @@ def find_crash_inputs(crash_root: str, crash_dirs: list[str]) -> list[tuple[str,
 
 def count_crash_files(crash_dir: str) -> int:
     return sum(1 for fname in os.listdir(crash_dir) if fname.startswith("id:"))
+
+
+def triage_crash(
+    target: str,
+    display_path: str,
+    fpath: str,
+) -> tuple[str, str, str, int] | None:
+    try:
+        result = subprocess.run(
+            [target, fpath],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None
+
+    return (display_path, fpath, result.stderr, os.path.getsize(fpath))
 
 
 def write_crash_report(
@@ -89,61 +113,69 @@ def parse_args() -> Args:
         required=True,
         help="Output directory where crash reports and the summary file will be written.",
     )
-    return parser.parse_args(namespace=Args())
+    _ = parser.add_argument(
+        "--jobs",
+        dest="jobs",
+        metavar="JOBS",
+        type=int,
+        default=os.cpu_count() or 1,
+        help="Number of crashes to triage in parallel.",
+    )
+    args = parser.parse_args(namespace=Args())
+    if args.jobs < 1:
+        parser.error("--jobs must be at least 1")
+    return args
 
 
 def main() -> None:
     start_time = time.monotonic()
     args = parse_args()
     best_crashes: dict[str, tuple[int, str, str, str]] = {}
-    total_crashes_triaged = 0
     crash_dirs = find_crash_dirs(args.crash_dir)
     crash_inputs = find_crash_inputs(args.crash_dir, crash_dirs)
 
     print(f"Found {len(crash_dirs)} crash directories.")
+    print(f"Using {args.jobs} parallel workers.")
 
-    current_crash_dir = ""
-    for display_path, fpath in crash_inputs:
-        crash_dir = os.path.dirname(fpath)
-        if crash_dir != current_crash_dir:
-            current_crash_dir = crash_dir
-            relative_crash_dir = os.path.relpath(crash_dir, args.crash_dir)
-            print(f"\n[>] Processing {relative_crash_dir} ({count_crash_files(crash_dir)} crash files)")
+    for crash_dir in crash_dirs:
+        relative_crash_dir = os.path.relpath(crash_dir, args.crash_dir)
+        print(f"\n[>] Queued {relative_crash_dir} ({count_crash_files(crash_dir)} crash files)")
 
-        print(f"[+] Running {fpath}")
-        total_crashes_triaged += 1
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs) as executor:
+        future_to_path = {
+            executor.submit(triage_crash, args.target, display_path, fpath): fpath
+            for display_path, fpath in crash_inputs
+        }
 
-        try:
-            result = subprocess.run(
-                [args.target, fpath],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=5,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            print("Timeout, skipping...")
-            continue
+        for future in concurrent.futures.as_completed(future_to_path):
+            fpath = future_to_path[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                print(f"Worker failed for {fpath}: {exc}")
+                continue
 
-        summary = extract_summary(result.stderr)
+            if result is None:
+                print(f"Timeout, skipping: {fpath}")
+                continue
 
-        if summary:
-            file_size = os.path.getsize(fpath)
-            existing_crash = best_crashes.get(summary)
+            display_path, fpath, stderr, file_size = result
+            print(f"[+] Finished {fpath}")
 
-            if existing_crash is None:
-                best_crashes[summary] = (file_size, display_path, fpath, result.stderr)
-                print(f"{summary}")
-            elif file_size < existing_crash[0]:
-                best_crashes[summary] = (file_size, display_path, fpath, result.stderr)
-                print(f"Smaller reproducer found ({file_size} bytes): {summary}")
+            summary = extract_summary(stderr)
+            if summary:
+                existing_crash = best_crashes.get(summary)
+
+                if existing_crash is None:
+                    best_crashes[summary] = (file_size, display_path, fpath, stderr)
+                    print(f"{summary}")
+                elif file_size < existing_crash[0]:
+                    best_crashes[summary] = (file_size, display_path, fpath, stderr)
+                    print(f"Smaller reproducer found ({file_size} bytes): {summary}")
+                else:
+                    print(f"Duplicate crash, keeping smaller reproducer: {summary}")
             else:
-                print(f"Duplicate crash, keeping smaller reproducer: {summary}")
-        else:
-            print("No ASAN summary found.")
+                print("No ASAN summary found.")
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -159,7 +191,7 @@ def main() -> None:
         _ = f.write(f"Ran for (seconds): {elapsed_seconds:.2f}\n")
         _ = f.write(f"Crash Directories: {len(crash_dirs)}\n")
         _ = f.write(f"Unique Crashes: {len(best_crashes)}\n")
-        _ = f.write(f"Total Crashes: {total_crashes_triaged}\n")
+        _ = f.write(f"Total Crashes: {len(crash_inputs)}\n")
 
     print("\nDone. Crash reports saved under:", args.output_dir)
     print("Summary saved to:", summary_file)
