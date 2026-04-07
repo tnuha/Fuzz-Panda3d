@@ -26,3 +26,14 @@ sudo apt-get install build-essential pkg-config fakeroot python3-dev libpng-dev 
 
 1. this would be cool but I'm not doing this
 
+## After building panda3d...
+
+You now should have an AFL++ compatible set of Panda3D libraries.
+Change your current directory to the interface of interest,
+and once there, either
+- Fuzz with `make fuzz`
+- triage with `make triager`
+
+During triage we also have a helper script for large crash directories,
+`triager.py` in the root of this project.
+
