@@ -37,3 +37,13 @@ and once there, either
 During triage we also have a helper script for large crash directories,
 `triager.py` in the root of this project.
 
+# Results
+
+Currently we have posted the following issues to the main panda3d repository
+on GitHub:
+
+- [SEGV in pallocator](<https://github.com/panda3d/panda3d/issues/1818>)
+- [SEGV in stl_tree](<https://github.com/panda3d/panda3d/issues/1819>)
+- [SEGV in GeomVertexArrayFormat::is_registered](<https://github.com/panda3d/panda3d/issues/1820>)
+- [SEGV in Geom::reset_geom_rendering](<https://github.com/panda3d/panda3d/issues/1821>)
+
