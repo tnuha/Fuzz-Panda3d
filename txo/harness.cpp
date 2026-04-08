@@ -1,5 +1,5 @@
-#include "texturePool.h"
-// #include "pandaFramework.h"
+#include "texture.h"
+#include "pandaFramework.h"
 
 static bool initialized = false;
 
@@ -11,36 +11,40 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
 
     std::string input(reinterpret_cast<const char*>(data), len);
     std::istringstream stream(input);
+    
+    Texture txo;
 
-    // EggData egg;
+    if (!txo.read_txo(stream)) {
+        return 0;
+    }
 
-    PT(Texture) my_tex = TexturePool::load_texture("path/to/image.txo");
+    for (int i = 0; i < 3; ++i) {
 
-    // if (!egg.read(stream)) {
-    //     return 0;
-    // }
+    }
 
-    // for (int i = 0; i < 3; ++i) {
-    //     egg.triangulate_polygons(EggData::T_polygon | EggData::T_convex);
-    //     egg.recompute_vertex_normals(0.05);
-    //     egg.remove_unused_vertices(true);
-    // }
+    txo.texture_uploaded();
+    txo.clear_fullpath();
+    txo.clear_alpha_fullpath();
+    txo.clear_ram_image();
+    txo.test_ref_count_integrity();
+    txo.test_ref_count_nonzero();
+    txo.mark_bam_modified();
+    txo.get_bam_modified();
+    txo.get_name();
+    txo.peek();
+    txo.get_texture_type();
+    txo.get_compression();
+    txo.get_quality_level();
+    txo.get_component_type();
+    txo.get_format();
 
-    // egg.flatten_transforms();
-    // egg.apply_texmats();
-    // egg.strip_normals();
-    // egg.unify_attributes(true, true, true);
-    // egg.recompute_polygon_normals();
-    // egg.reverse_vertex_ordering();
-    // egg.remove_invalid_primitives(true);
-    // egg.remove_unused_vertices(true);
-
-    // std::ostringstream out;
-    // egg.write_egg(out);
-    // std::istringstream in2(out.str());
-    // EggData egg2;
-    // if (!egg2.read(in2))
-    //     return 0;
+    std::ostringstream out;
+    txo.write_txo(out);
+    std::istringstream in2(out.str());
+    Texture txo2;
+    if (!txo2.read_txo(stream)) {
+        return 0;
+    }
 
     return 0;
 }
