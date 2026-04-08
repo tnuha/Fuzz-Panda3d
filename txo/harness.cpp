@@ -19,7 +19,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
     }
 
     for (int i = 0; i < 3; ++i) {
-
+        txo.generate_alpha_scale_map();
+        txo.generate_ram_mipmap_images();
+        txo.generate_simple_ram_image();
+        txo.clear_ram_image();
     }
 
     txo.texture_uploaded();
