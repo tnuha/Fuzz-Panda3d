@@ -30,6 +30,7 @@ on GitHub:
 - [SEGV in stl_tree](<https://github.com/panda3d/panda3d/issues/1819>)
 - [SEGV in GeomVertexArrayFormat::is_registered](<https://github.com/panda3d/panda3d/issues/1820>)
 - [SEGV in Geom::reset_geom_rendering](<https://github.com/panda3d/panda3d/issues/1821>)
+- [tracking issue for bam fuzzing](<https://github.com/panda3d/panda3d/issues/1841>)
 
 ### Project organization
 
